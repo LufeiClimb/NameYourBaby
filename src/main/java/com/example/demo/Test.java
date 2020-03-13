@@ -22,6 +22,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Test
@@ -38,7 +44,11 @@ public class Test {
 
     public static void main(String[] args) {
         Test test = new Test();
-        test.test("昊泽浩然品源辰鑫思文涵卫轩梓译奕凡", true, "然鑫译文涵凡", "思品梓奕凡浩昊");
+        try {
+            test.test("昊泽浩然品源辰鑫思文涵卫轩梓译奕凡", true, "然鑫译文涵凡", "思品梓奕凡浩昊");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @GetMapping("/test")
@@ -47,7 +57,7 @@ public class Test {
             @RequestParam @ApiParam(defaultValue = "昊泽浩然品源辰鑫思文涵卫轩梓译奕凡") String words,
             @RequestParam @ApiParam(defaultValue = "true") boolean wuxing,
             @RequestParam @ApiParam(defaultValue = "然鑫译文涵凡") String erPaiChu,
-            @RequestParam @ApiParam(defaultValue = "思品梓奕凡浩昊") String sanPaiChu) {
+            @RequestParam @ApiParam(defaultValue = "思品梓奕凡浩昊") String sanPaiChu) throws ExecutionException, InterruptedException {
         char[] chars = words.toCharArray();
         List<JSONObject> names = new ArrayList<>();
         List<String> allName = new ArrayList<>();
@@ -65,22 +75,41 @@ public class Test {
             }
         }
         int i = 0;
+
+        ThreadPoolExecutor executor =
+                new ThreadPoolExecutor(
+                        5, 10000, 200, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<Runnable>(5));
+
+        List<Future<JSONObject>> results = new ArrayList<>();
         for (String name1 : allName) {
             i++;
             System.out.print(i + "/" + allName.size() + "  ");
-            JSONObject map = new JSONObject();
-            map.put("名字", name1);
 
-            if (wuxing) {
-                jisuanwuxing(name1, map);
+            MyTask myTask = new MyTask(wuxing, name1);
+            Future<JSONObject> submit = executor.submit(myTask);
+
+            results.add(submit);
+        }
+        do {
+            //            System.out.printf("number of completed tasks: %d\n",
+            // executor.getCompletedTaskCount());
+            for (int j = 0; j < results.size(); j++) {
+                Future<JSONObject> result = results.get(j);
+                System.out.printf("Task %d : %s \n", j, result.isDone());
             }
-            names.add(map);
+
+        } while (executor.getCompletedTaskCount() < results.size());
+
+        executor.shutdown();
+
+        for (Future<JSONObject> result : results) {
+            names.add(result.get());
         }
         System.out.println(names);
 
         String sheetName = "备用名";
         String[] title = {
-            "名字", "五行", "综合分数", "字形意义", "生肖喜忌", "八字喜用", "三才五格", "三才", "总格", "天格", "人格", "地格", "外格"
+                "名字", "五行", "综合分数", "字形意义", "生肖喜忌", "八字喜用", "三才五格", "三才", "总格", "天格", "人格", "地格", "外格"
         };
         try {
             FileInputStream fileInputStream = new FileInputStream("宝宝起名.xls");
@@ -96,62 +125,94 @@ public class Test {
         }
     }
 
-    private static void jisuanwuxing(String name1, JSONObject map) {
-        JSONObject param = new JSONObject();
-        param.put("xs", "卢");
-        param.put("mz", name1.replace("卢", ""));
-        param.put("action", "test");
+    class MyTask implements Callable<JSONObject> {
+        private String taskName;
+        private boolean wuxing;
+        private String name;
 
-        Map<String, String> headers = new HashMap<>();
-        headers.put("cookie", "ffqm_uid=2437625; ffqm_sign=fda49225223242a2f577c7695ebfd531");
-        headers.put(
-                "user-agent",
-                "Mozilla;5.0 (Linux; Android 9; Redmi Note 5 Build;PKQ1.180904.001; wv) AppleWebKit;537.36 (KHTML, like Gecko) Version;4.0 Chrome;74.0.3729.157 Mobile Safari;537.36;{qm-android:868773036592999};{versionCode:2.5.2};{extendid:0};{qm-android:868773036592999};{versionCode:2.5.2};{extendid:0}");
-        try {
-            String total =
-                    HttpUtil.httpsPost(
-                            "https://name2.feifanqiming.com/home/jieming_detail.html?f=%E5%8D%A2&s="
-                                    + name1.replace("卢", "")
-                                    + "&b=2020-02-17%2015:00&sex=2&bhour=&from=home",
-                            param,
-                            headers,
-                            ContentType.TEXT_HTML);
-            Document totalDoc = Jsoup.parse(total);
-            Elements small = totalDoc.select("div[class=col]");
-            String wuxing = "";
-            for (Element element : small) {
-                wuxing = wuxing + element.text().split("\\[")[1].split("]")[0];
+        public MyTask(boolean wuxing, String name) {
+            this.taskName = wuxing + name;
+            this.wuxing = wuxing;
+            this.name = name;
+        }
+
+        @Override
+        public JSONObject call() {
+            JSONObject jsonObject = new JSONObject();
+            // System.out.println("正在执行task " + taskName);
+            try {
+                jsonObject = doTask(wuxing, name);
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-            map.put("五行", wuxing);
-            Elements s = totalDoc.getElementsByClass("rank-bar");
-            map.put("综合分数", s.text().replaceAll("[综合分数：]", ""));
-            Elements s1 = totalDoc.getElementsByClass("list");
-            for (Element element : s1) {
-                String[] a = element.text().split("分 ");
-                for (String s2 : a) {
-                    String[] split = s2.replace("分", "").split(" ");
-                    map.put(split[0], split[1]);
+            // System.out.println("task " + taskName + "执行完毕");
+            return jsonObject;
+        }
+
+        private JSONObject doTask(boolean wuxing, String name1) {
+            JSONObject map = new JSONObject();
+            map.put("名字", name1);
+
+            if (wuxing) {
+                JSONObject param = new JSONObject();
+                param.put("xs", "卢");
+                param.put("mz", name1.replace("卢", ""));
+                param.put("action", "test");
+
+                Map<String, String> headers = new HashMap<>();
+                headers.put(
+                        "cookie", "ffqm_uid=2437625; ffqm_sign=fda49225223242a2f577c7695ebfd531");
+                headers.put(
+                        "user-agent",
+                        "Mozilla;5.0 (Linux; Android 9; Redmi Note 5 Build;PKQ1.180904.001; wv) AppleWebKit;537.36 (KHTML, like Gecko) Version;4.0 Chrome;74.0.3729.157 Mobile Safari;537.36;{qm-android:868773036592999};{versionCode:2.5.2};{extendid:0};{qm-android:868773036592999};{versionCode:2.5.2};{extendid:0}");
+                try {
+                    String total =
+                            HttpUtil.httpsPost(
+                                    "https://name2.feifanqiming.com/home/jieming_detail.html?f=%E5%8D%A2&s="
+                                            + name1.replace("卢", "")
+                                            + "&b=2020-02-17%2015:00&sex=2&bhour=&from=home",
+                                    param,
+                                    headers,
+                                    ContentType.TEXT_HTML);
+                    Document totalDoc = Jsoup.parse(total);
+                    Elements small = totalDoc.select("div[class=col]");
+                    String wuxing1 = "";
+                    for (Element element : small) {
+                        wuxing1 = wuxing1 + element.text().split("\\[")[1].split("]")[0];
+                    }
+                    map.put("五行", wuxing1);
+                    Elements s = totalDoc.getElementsByClass("rank-bar");
+                    map.put("综合分数", s.text().replaceAll("[综合分数：]", ""));
+                    Elements s1 = totalDoc.getElementsByClass("list");
+                    for (Element element : s1) {
+                        String[] a = element.text().split("分 ");
+                        for (String s2 : a) {
+                            String[] split = s2.replace("分", "").split(" ");
+                            map.put(split[0], split[1]);
+                        }
+                    }
+                    String wuge =
+                            HttpUtil.httpsPost(
+                                    "https://name2.feifanqiming.com/home/jieming_sancai.html?f=%E5%8D%A2&s="
+                                            + name1.replace("卢", "")
+                                            + "&b=2020-02-17%2015:00&sex=2&bhour=&from=home",
+                                    param,
+                                    headers,
+                                    ContentType.TEXT_HTML);
+                    Document wugeDoc = Jsoup.parse(wuge);
+                    String[] s2 = wugeDoc.select("div[class=title]").text().split(" ");
+
+                    map.put("三才", s2[0].replace("三才", ""));
+                    map.put("总格", s2[1].replace("总格", ""));
+                    map.put("天格", s2[2].replace("天格", ""));
+                    map.put("人格", s2[3].replace("人格", ""));
+                    map.put("地格", s2[4].replace("地格", ""));
+                    map.put("外格", s2[5].replace("外格", ""));
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
             }
-            String wuge =
-                    HttpUtil.httpsPost(
-                            "https://name2.feifanqiming.com/home/jieming_sancai.html?f=%E5%8D%A2&s="
-                                    + name1.replace("卢", "")
-                                    + "&b=2020-02-17%2015:00&sex=2&bhour=&from=home",
-                            param,
-                            headers,
-                            ContentType.TEXT_HTML);
-            Document wugeDoc = Jsoup.parse(wuge);
-            String[] s2 = wugeDoc.select("div[class=title]").text().split(" ");
-
-            map.put("三才", s2[0].replace("三才", ""));
-            map.put("总格", s2[1].replace("总格", ""));
-            map.put("天格", s2[2].replace("天格", ""));
-            map.put("人格", s2[3].replace("人格", ""));
-            map.put("地格", s2[4].replace("地格", ""));
-            map.put("外格", s2[5].replace("外格", ""));
-        } catch (IOException e) {
-            e.printStackTrace();
+            return map;
         }
     }
 }
