@@ -1,4 +1,4 @@
-package com.example;
+package com.example.demo;
 
 import com.alibaba.fastjson.JSONObject;
 import org.apache.poi.hssf.usermodel.HSSFCell;
@@ -9,6 +9,7 @@ import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.HorizontalAlignment;
 
 import java.util.List;
+import java.util.regex.Pattern;
 
 public class ExcelUtil {
 
@@ -53,11 +54,19 @@ public class ExcelUtil {
 
         //创建内容
         for (int i = 0; i < values.size(); i++) {
-            row = sheet.createRow(i + 18);
+            row = sheet.createRow(i + 17);
             for (int j = 0; j < title.length; j++) {
 
-                String aaa = values.get(i).getString(title[j] + "");
-                row.createCell(j).setCellValue(values.get(i).getString(title[j] + ""));
+                String value = values.get(i).getString(title[j] + "");
+
+                Pattern pattern = Pattern.compile("^(-?\\d+)(\\.\\d+)?$");
+                boolean bo=pattern.matcher(value).matches();
+                if(bo){
+                    row.createCell(j).setCellValue(Double.valueOf(value));
+                } else {
+                    row.createCell(j).setCellValue(value);
+                }
+
             }
         }
         return wb;

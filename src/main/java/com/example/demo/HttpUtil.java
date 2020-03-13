@@ -1,4 +1,4 @@
-package com.example;
+package com.example.demo;
 
 
 import com.alibaba.fastjson.JSONObject;
@@ -226,9 +226,9 @@ public class HttpUtil {
         String respContent = null;
         CloseableHttpResponse resp = null;
         try {
-            LOGGER.info("post请求url和参数：{}：{}", url, param);
+            // LOGGER.info("post请求url和参数：{}：{}", url, param);
             resp = client.execute(httpPost);
-            LOGGER.info("post请求返回接口结果：{}：", resp);
+            // LOGGER.info("post请求返回接口结果：{}：", resp);
             if (resp.getStatusLine().getStatusCode() == 200) {
                 HttpEntity he = resp.getEntity();
                 respContent = EntityUtils.toString(he, "UTF-8");
