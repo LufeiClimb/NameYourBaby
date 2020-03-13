@@ -45,7 +45,7 @@ public class Test {
     public static void main(String[] args) {
         Test test = new Test();
         try {
-            test.test("昊泽浩然品源辰鑫思文涵卫轩梓译奕凡", true, "然鑫译文涵凡", "思品梓奕凡浩昊");
+            test.test("昊泽浩然品源辰鑫思文涵卫轩梓译奕凡延纬", true, false, "然鑫译文涵凡", "思品梓奕凡浩昊");
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -54,8 +54,9 @@ public class Test {
     @GetMapping("/test")
     @ApiOperation(value = "test")
     public void test(
-            @RequestParam @ApiParam(defaultValue = "昊泽浩然品源辰鑫思文涵卫轩梓译奕凡") String words,
+            @RequestParam @ApiParam(defaultValue = "昊泽浩然品源辰鑫思文涵卫轩梓译奕凡延纬") String words,
             @RequestParam @ApiParam(defaultValue = "true") boolean wuxing,
+            @RequestParam @ApiParam(defaultValue = "true") boolean xiong,
             @RequestParam @ApiParam(defaultValue = "然鑫译文涵凡") String erPaiChu,
             @RequestParam @ApiParam(defaultValue = "思品梓奕凡浩昊") String sanPaiChu) throws ExecutionException, InterruptedException {
         char[] chars = words.toCharArray();
@@ -85,7 +86,7 @@ public class Test {
             i++;
             System.out.print(i + "/" + allName.size() + "  ");
 
-            MyTask myTask = new MyTask(wuxing, name1);
+            MyTask myTask = new MyTask(wuxing, xiong, name1);
             Future<JSONObject> submit = executor.submit(myTask);
 
             results.add(submit);
@@ -95,7 +96,7 @@ public class Test {
             // executor.getCompletedTaskCount());
             for (int j = 0; j < results.size(); j++) {
                 Future<JSONObject> result = results.get(j);
-                System.out.printf("Task %d : %s \n", j, result.isDone());
+                // System.out.printf("Task %d : %s \n", j, result.isDone());
             }
 
         } while (executor.getCompletedTaskCount() < results.size());
@@ -103,7 +104,10 @@ public class Test {
         executor.shutdown();
 
         for (Future<JSONObject> result : results) {
-            names.add(result.get());
+            JSONObject jsonObject = result.get();
+            if (jsonObject != null) {
+                names.add(result.get());
+            }
         }
         System.out.println(names);
 
@@ -128,11 +132,13 @@ public class Test {
     class MyTask implements Callable<JSONObject> {
         private String taskName;
         private boolean wuxing;
+        private boolean xiong;
         private String name;
 
-        public MyTask(boolean wuxing, String name) {
+        public MyTask(boolean wuxing, boolean xiong, String name) {
             this.taskName = wuxing + name;
             this.wuxing = wuxing;
+            this.xiong = xiong;
             this.name = name;
         }
 
@@ -141,7 +147,7 @@ public class Test {
             JSONObject jsonObject = new JSONObject();
             // System.out.println("正在执行task " + taskName);
             try {
-                jsonObject = doTask(wuxing, name);
+                jsonObject = doTask(wuxing, xiong, name);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -149,7 +155,7 @@ public class Test {
             return jsonObject;
         }
 
-        private JSONObject doTask(boolean wuxing, String name1) {
+        private JSONObject doTask(boolean wuxing, boolean xiong, String name1) {
             JSONObject map = new JSONObject();
             map.put("名字", name1);
 
@@ -200,7 +206,11 @@ public class Test {
                                     headers,
                                     ContentType.TEXT_HTML);
                     Document wugeDoc = Jsoup.parse(wuge);
-                    String[] s2 = wugeDoc.select("div[class=title]").text().split(" ");
+                    String text = wugeDoc.select("div[class=title]").text();
+                    if (xiong && text.contains("凶")){
+                        return null;
+                    }
+                    String[] s2 = text.split(" ");
 
                     map.put("三才", s2[0].replace("三才", ""));
                     map.put("总格", s2[1].replace("总格", ""));
