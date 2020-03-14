@@ -6,7 +6,11 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.entity.ContentType;
+import org.apache.poi.hssf.usermodel.HSSFCell;
+import org.apache.poi.hssf.usermodel.HSSFRow;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -19,16 +23,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.*;
+import java.util.concurrent.*;
 
 /**
  * Test
@@ -46,9 +42,9 @@ public class Test {
     public static void main(String[] args) {
         Test test = new Test();
         try {
-            test.test("昊泽浩然品玥宇宏佑赫源辰鑫思文涵卫轩梓译奕凡延纬靳笙晓童钧沐景煜恺",
+            test.test("昊泽浩然品玥宇宏佑赫源辰鑫思文涵卫轩梓新译俊跃杰奕凡延纬靳笙晓童钧沐景煜恺",
                     true, true,
-                    "然鑫译文涵凡童钧景宇",
+                    "然鑫译文涵凡童钧景宇杰",
                     "思品梓奕凡浩昊");
         } catch (Exception e) {
             e.printStackTrace();
@@ -58,11 +54,11 @@ public class Test {
     @GetMapping("/test")
     @ApiOperation(value = "test")
     public void test(
-            @RequestParam @ApiParam(defaultValue = "昊泽浩然品玥宇宏佑赫源辰鑫思文涵卫轩梓译奕凡延纬靳笙晓童钧沐景煜恺") String words,
+            @RequestParam @ApiParam(defaultValue = "昊泽浩然品玥宇宏佑赫源辰鑫思文涵卫轩梓新译俊跃杰奕凡延纬靳笙晓童钧沐景煜恺") String words,
             @RequestParam @ApiParam(defaultValue = "true") boolean wuxing,
-            @RequestParam @ApiParam(defaultValue = "true") boolean xiong,
-            @RequestParam @ApiParam(defaultValue = "然鑫译文涵凡童钧景") String erPaiChu,
-            @RequestParam @ApiParam(defaultValue = "思品梓奕凡浩昊") String sanPaiChu) throws ExecutionException, InterruptedException {
+            @RequestParam @ApiParam(defaultValue = "false") boolean xiongPaichu,
+            @RequestParam @ApiParam(defaultValue = "然鑫译文涵凡童钧景宇杰") String erPaiChu,
+            @RequestParam @ApiParam(defaultValue = "思品梓奕凡浩昊") String sanPaiChu) throws ExecutionException, InterruptedException, IOException {
         char[] chars = words.toCharArray();
         List<JSONObject> names = new ArrayList<>();
         List<String> allName = new ArrayList<>();
@@ -70,16 +66,31 @@ public class Test {
         for (char aChar : chars) {
             wordsList.add(String.valueOf(aChar));
         }
+
+        List<String> excelNames = new ArrayList<>();
+
+        FileInputStream fileInputStream = new FileInputStream("宝宝起名.xls");
+        Workbook wbRead = new HSSFWorkbook(fileInputStream);
+        Sheet sheet = wbRead.getSheet("备用名");
+        int totalNum = sheet.getPhysicalNumberOfRows();
+        for (int j = 0; j < totalNum; j++) {
+            HSSFRow row = (HSSFRow) sheet.getRow(j);
+            HSSFCell cell = row.getCell(0);
+            String stringCellValue = cell.getStringCellValue();
+            excelNames.add(stringCellValue);
+        }
         for (String worda : wordsList) {
             if (!erPaiChu.contains(worda)) {
                 for (String wordb : wordsList) {
                     if (!sanPaiChu.contains(wordb)) {
-                        allName.add("卢" + worda + wordb);
+                        String name = "卢" + worda + wordb;
+                        if (!excelNames.contains(name)){
+                            allName.add(name);
+                        }
                     }
                 }
             }
         }
-        int i = 0;
 
         ThreadPoolExecutor executor =
                 new ThreadPoolExecutor(
@@ -87,20 +98,21 @@ public class Test {
 
         List<Future<JSONObject>> results = new ArrayList<>();
         for (String name1 : allName) {
-            i++;
-            System.out.print(i + "/" + allName.size() + "  ");
             Thread.sleep(10);
-            MyTask myTask = new MyTask(wuxing, xiong, name1);
+            MyTask myTask = new MyTask(wuxing, xiongPaichu, name1);
             Future<JSONObject> submit = executor.submit(myTask);
-
             results.add(submit);
         }
+        Set<Integer> sss = new HashSet<>();
         do {
             //            System.out.printf("number of completed tasks: %d\n",
             // executor.getCompletedTaskCount());
             for (int j = 0; j < results.size(); j++) {
                 Future<JSONObject> result = results.get(j);
-                // System.out.printf("Task %d : %s \n", j, result.isDone());
+                if (result.isDone() && !sss.contains(j)) {
+                    sss.add(j);
+                    System.out.println(sss.size() + "/" + results.size() + "  ");
+                }
             }
 
         } while (executor.getCompletedTaskCount() < results.size());
@@ -120,14 +132,13 @@ public class Test {
                 "名字", "五行", "综合分数", "字形意义", "生肖喜忌", "八字喜用", "三才五格", "三才", "总格", "天格", "人格", "地格", "外格"
         };
         try {
-            FileInputStream fileInputStream = new FileInputStream("宝宝起名.xls");
+            fileInputStream = new FileInputStream("宝宝起名.xls");
             HSSFWorkbook wb =
                     ExcelUtil.getHSSFWorkbook(
-                            sheetName, title, names, new HSSFWorkbook(fileInputStream));
-            FileOutputStream output = new FileOutputStream("宝宝起名1.xlsx");
+                            sheetName, title, names, new HSSFWorkbook(fileInputStream), excelNames.size());
+            FileOutputStream output = new FileOutputStream("宝宝起名1.xls");
             wb.write(output);
             output.close();
-
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -136,13 +147,13 @@ public class Test {
     class MyTask implements Callable<JSONObject> {
         private String taskName;
         private boolean wuxing;
-        private boolean xiong;
+        private boolean xiongPaichu;
         private String name;
 
-        public MyTask(boolean wuxing, boolean xiong, String name) {
+        public MyTask(boolean wuxing, boolean xiongPaichu, String name) {
             this.taskName = wuxing + name;
             this.wuxing = wuxing;
-            this.xiong = xiong;
+            this.xiongPaichu = xiongPaichu;
             this.name = name;
         }
 
@@ -151,7 +162,7 @@ public class Test {
             JSONObject jsonObject = new JSONObject();
             // System.out.println("正在执行task " + taskName);
             try {
-                jsonObject = doTask(wuxing, xiong, name);
+                jsonObject = doTask(wuxing, xiongPaichu, name);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -159,7 +170,7 @@ public class Test {
             return jsonObject;
         }
 
-        private JSONObject doTask(boolean wuxing, boolean xiong, String name1) {
+        private JSONObject doTask(boolean wuxing, boolean xiongPaichu, String name1) {
             JSONObject map = new JSONObject();
             map.put("名字", name1);
 
@@ -220,7 +231,7 @@ public class Test {
                     }
                     Document wugeDoc = Jsoup.parse(wuge);
                     String text = wugeDoc.select("div[class=title]").text();
-                    if (xiong && text.contains("凶")){
+                    if (xiongPaichu && text.contains("凶")){
                         return null;
                     }
                     String[] s2 = text.split(" ");

@@ -234,7 +234,7 @@ public class HttpUtil {
                 respContent = EntityUtils.toString(he, "UTF-8");
             }
         } catch (IOException e) {
-            LOGGER.error("POST请求执行方法报错" + e);
+            // LOGGER.error("POST请求执行方法报错" + e);
         } finally {
             if (resp != null) {
                 resp.close();

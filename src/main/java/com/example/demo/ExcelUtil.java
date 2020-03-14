@@ -17,12 +17,13 @@ public class ExcelUtil {
      * 导出Excel
      *
      * @param sheetName sheet名称
-     * @param title     标题
-     * @param values    内容
-     * @param wb        HSSFWorkbook对象
+     * @param title 标题
+     * @param values 内容
+     * @param wb HSSFWorkbook对象
      * @return
      */
-    public static HSSFWorkbook getHSSFWorkbook(String sheetName, String[] title, List<JSONObject> values, HSSFWorkbook wb) {
+    public static HSSFWorkbook getHSSFWorkbook(
+            String sheetName, String[] title, List<JSONObject> values, HSSFWorkbook wb, int startRowNum) {
 
         // 第一步，创建一个HSSFWorkbook，对应一个Excel文件
         if (wb == null) {
@@ -42,7 +43,7 @@ public class ExcelUtil {
         // 创建一个居中格式
         style.setAlignment(HorizontalAlignment.CENTER);
 
-        //声明列对象
+        // 声明列对象
         HSSFCell cell = null;
 
         // //创建标题
@@ -52,21 +53,20 @@ public class ExcelUtil {
         //     cell.setCellStyle(style);
         // }
 
-        //创建内容
+        // 创建内容
         for (int i = 0; i < values.size(); i++) {
-            row = sheet.createRow(i + 40);
+            row = sheet.createRow(i + startRowNum);
             for (int j = 0; j < title.length; j++) {
 
                 String value = values.get(i).getString(title[j] + "");
 
                 Pattern pattern = Pattern.compile("^(-?\\d+)(\\.\\d+)?$");
-                boolean bo=pattern.matcher(value).matches();
-                if(bo){
+                boolean bo = pattern.matcher(value).matches();
+                if (bo) {
                     row.createCell(j).setCellValue(Double.valueOf(value));
                 } else {
                     row.createCell(j).setCellValue(value);
                 }
-
             }
         }
         return wb;
