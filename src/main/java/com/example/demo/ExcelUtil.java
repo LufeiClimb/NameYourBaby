@@ -54,7 +54,7 @@ public class ExcelUtil {
 
         //创建内容
         for (int i = 0; i < values.size(); i++) {
-            row = sheet.createRow(i + 17);
+            row = sheet.createRow(i + 40);
             for (int j = 0; j < title.length; j++) {
 
                 String value = values.get(i).getString(title[j] + "");

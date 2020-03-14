@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSONObject;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.entity.ContentType;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.jsoup.Jsoup;
@@ -45,7 +46,10 @@ public class Test {
     public static void main(String[] args) {
         Test test = new Test();
         try {
-            test.test("昊泽浩然品源辰鑫思文涵卫轩梓译奕凡延纬", true, false, "然鑫译文涵凡", "思品梓奕凡浩昊");
+            test.test("昊泽浩然品玥宇宏佑赫源辰鑫思文涵卫轩梓译奕凡延纬靳笙晓童钧沐景煜恺",
+                    true, true,
+                    "然鑫译文涵凡童钧景宇",
+                    "思品梓奕凡浩昊");
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -54,10 +58,10 @@ public class Test {
     @GetMapping("/test")
     @ApiOperation(value = "test")
     public void test(
-            @RequestParam @ApiParam(defaultValue = "昊泽浩然品源辰鑫思文涵卫轩梓译奕凡延纬") String words,
+            @RequestParam @ApiParam(defaultValue = "昊泽浩然品玥宇宏佑赫源辰鑫思文涵卫轩梓译奕凡延纬靳笙晓童钧沐景煜恺") String words,
             @RequestParam @ApiParam(defaultValue = "true") boolean wuxing,
             @RequestParam @ApiParam(defaultValue = "true") boolean xiong,
-            @RequestParam @ApiParam(defaultValue = "然鑫译文涵凡") String erPaiChu,
+            @RequestParam @ApiParam(defaultValue = "然鑫译文涵凡童钧景") String erPaiChu,
             @RequestParam @ApiParam(defaultValue = "思品梓奕凡浩昊") String sanPaiChu) throws ExecutionException, InterruptedException {
         char[] chars = words.toCharArray();
         List<JSONObject> names = new ArrayList<>();
@@ -85,7 +89,7 @@ public class Test {
         for (String name1 : allName) {
             i++;
             System.out.print(i + "/" + allName.size() + "  ");
-
+            Thread.sleep(10);
             MyTask myTask = new MyTask(wuxing, xiong, name1);
             Future<JSONObject> submit = executor.submit(myTask);
 
@@ -170,7 +174,10 @@ public class Test {
                         "cookie", "ffqm_uid=2437625; ffqm_sign=fda49225223242a2f577c7695ebfd531");
                 headers.put(
                         "user-agent",
-                        "Mozilla;5.0 (Linux; Android 9; Redmi Note 5 Build;PKQ1.180904.001; wv) AppleWebKit;537.36 (KHTML, like Gecko) Version;4.0 Chrome;74.0.3729.157 Mobile Safari;537.36;{qm-android:868773036592999};{versionCode:2.5.2};{extendid:0};{qm-android:868773036592999};{versionCode:2.5.2};{extendid:0}");
+                        "Mozilla;5.0 (Linux; Android 9; Redmi Note 5 Build;PKQ1.180904.001; wv) AppleWebKit;" +
+                                "537.36 (KHTML, like Gecko) Version;4.0 Chrome;74.0.3729.157 Mobile Safari;" +
+                                "537.36;{qm-android:868773036592999};{versionCode:2.5.2};{extendid:0};" +
+                                "{qm-android:868773036592999};{versionCode:2.5.2};{extendid:0}");
                 try {
                     String total =
                             HttpUtil.httpsPost(
@@ -180,6 +187,9 @@ public class Test {
                                     param,
                                     headers,
                                     ContentType.TEXT_HTML);
+                    if (StringUtils.isBlank(total)){
+                        return null;
+                    }
                     Document totalDoc = Jsoup.parse(total);
                     Elements small = totalDoc.select("div[class=col]");
                     String wuxing1 = "";
@@ -205,6 +215,9 @@ public class Test {
                                     param,
                                     headers,
                                     ContentType.TEXT_HTML);
+                    if (StringUtils.isBlank(wuge)){
+                        return null;
+                    }
                     Document wugeDoc = Jsoup.parse(wuge);
                     String text = wugeDoc.select("div[class=title]").text();
                     if (xiong && text.contains("凶")){
