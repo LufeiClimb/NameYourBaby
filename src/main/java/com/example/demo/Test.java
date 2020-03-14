@@ -42,8 +42,8 @@ public class Test {
     public static void main(String[] args) {
         Test test = new Test();
         try {
-            test.test("昊泽浩然品玥宇宏佑赫源辰鑫思文涵卫轩梓新译俊跃杰奕凡延纬靳笙晓童钧沐景煜恺",
-                    true, true,
+            test.my("昊泽浩然品玥宇宏佑赫源辰鑫思文涵卫轩梓新译俊跃杰奕凡延纬靳笙晓童钧沐景煜恺",
+                    true, false,
                     "然鑫译文涵凡童钧景宇杰",
                     "思品梓奕凡浩昊");
         } catch (Exception e) {
@@ -51,9 +51,9 @@ public class Test {
         }
     }
 
-    @GetMapping("/test")
-    @ApiOperation(value = "test")
-    public void test(
+    @GetMapping("/my")
+    @ApiOperation(value = "my")
+    public void my(
             @RequestParam @ApiParam(defaultValue = "昊泽浩然品玥宇宏佑赫源辰鑫思文涵卫轩梓新译俊跃杰奕凡延纬靳笙晓童钧沐景煜恺") String words,
             @RequestParam @ApiParam(defaultValue = "true") boolean wuxing,
             @RequestParam @ApiParam(defaultValue = "false") boolean xiongPaichu,
@@ -66,6 +66,127 @@ public class Test {
         for (char aChar : chars) {
             wordsList.add(String.valueOf(aChar));
         }
+
+        List<String> excelNames = new ArrayList<>();
+
+        FileInputStream fileInputStream = new FileInputStream("宝宝起名.xls");
+        Workbook wbRead = new HSSFWorkbook(fileInputStream);
+        Sheet sheet = wbRead.getSheet("备用名");
+        int totalNum = sheet.getPhysicalNumberOfRows();
+        for (int j = 0; j < totalNum; j++) {
+            HSSFRow row = (HSSFRow) sheet.getRow(j);
+            HSSFCell cell = row.getCell(0);
+            String stringCellValue = cell.getStringCellValue();
+            excelNames.add(stringCellValue);
+        }
+        for (String worda : wordsList) {
+            if (!erPaiChu.contains(worda)) {
+                for (String wordb : wordsList) {
+                    if (!sanPaiChu.contains(wordb)) {
+                        String name = "卢" + worda + wordb;
+                        if (!excelNames.contains(name)){
+                            allName.add(name);
+                        }
+                    }
+                }
+            }
+        }
+
+        ThreadPoolExecutor executor =
+                new ThreadPoolExecutor(
+                        5, 10000, 200, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<Runnable>(5));
+
+        List<Future<JSONObject>> results = new ArrayList<>();
+        for (String name1 : allName) {
+            Thread.sleep(10);
+            MyTask myTask = new MyTask(wuxing, xiongPaichu, name1);
+            Future<JSONObject> submit = executor.submit(myTask);
+            results.add(submit);
+        }
+        Set<Integer> sss = new HashSet<>();
+        do {
+            //            System.out.printf("number of completed tasks: %d\n",
+            // executor.getCompletedTaskCount());
+            for (int j = 0; j < results.size(); j++) {
+                Future<JSONObject> result = results.get(j);
+                if (result.isDone() && !sss.contains(j)) {
+                    sss.add(j);
+                    System.out.println(sss.size() + "/" + results.size() + "  ");
+                }
+            }
+
+        } while (executor.getCompletedTaskCount() < results.size());
+
+        executor.shutdown();
+
+        for (Future<JSONObject> result : results) {
+            JSONObject jsonObject = result.get();
+            if (jsonObject != null) {
+                names.add(result.get());
+            }
+        }
+        System.out.println(names);
+
+        String sheetName = "备用名";
+        String[] title = {
+                "名字", "五行", "综合分数", "字形意义", "生肖喜忌", "八字喜用", "三才五格", "三才", "总格", "天格", "人格", "地格", "外格"
+        };
+        try {
+            fileInputStream = new FileInputStream("宝宝起名.xls");
+            HSSFWorkbook wb =
+                    ExcelUtil.getHSSFWorkbook(
+                            sheetName, title, names, new HSSFWorkbook(fileInputStream), excelNames.size());
+            FileOutputStream output = new FileOutputStream("宝宝起名1.xls");
+            wb.write(output);
+            output.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @GetMapping("/zaixian")
+    @ApiOperation(value = "zaixian")
+    public void zaixian(
+            @RequestParam @ApiParam(defaultValue = "true") boolean wuxing,
+            @RequestParam @ApiParam(defaultValue = "false") boolean xiongPaichu,
+            @RequestParam @ApiParam(defaultValue = "然鑫译文涵凡童钧景宇杰") String erPaiChu,
+            @RequestParam @ApiParam(defaultValue = "思品梓奕凡浩昊") String sanPaiChu) throws ExecutionException, InterruptedException, IOException {
+        List<JSONObject> names = new ArrayList<>();
+        List<String> allName = new ArrayList<>();
+
+
+        JSONObject param = new JSONObject();
+        param.put("xing", "卢");
+        param.put("xinglength", 1);
+        param.put("minglength", "2");
+        param.put("sex", "nan");
+        param.put("dic", "0010");
+        param.put("num", "88");
+
+        Map<String, String> headers = new HashMap<>();
+        headers.put(
+                "cookie", "UM_distinctid=170d9348629c0f-0d6e017475eaae-396b7407-13c680-170d934862aaa1; " +
+                        "CNZZDATA5946644=cnzz_eid%3D743738471-1584189398-https%253A%252F%252Fwww.baidu.com%252F%26ntime%3D1584189398; " +
+                        "__gads=ID=78f6eb6458d9e97b:T=1584192066:S=ALNI_MaAuVd7o3IYzz6w-rdX3g7K47XS9w");
+        headers.put(
+                "user-agent",
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_5) AppleWebKit/537.36 (KHTML, like Gecko) " +
+                        "Chrome/80.0.3987.132 Safari/537.36");
+        try {
+            String total =
+                    HttpUtil.httpsPost(
+                            "https://www.qmsjmfb.com/?xing=%E5%8D%A2&xinglength=1&minglength=2&sex=nan&dic=0010&num=88",
+                            param,
+                            headers,
+                            ContentType.TEXT_HTML);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
+
+        List<String> wordsList = new ArrayList<>();
 
         List<String> excelNames = new ArrayList<>();
 
