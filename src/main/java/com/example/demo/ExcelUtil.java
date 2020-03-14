@@ -1,6 +1,7 @@
 package com.example.demo;
 
 import com.alibaba.fastjson.JSONObject;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.hssf.usermodel.HSSFCell;
 import org.apache.poi.hssf.usermodel.HSSFCellStyle;
 import org.apache.poi.hssf.usermodel.HSSFRow;
@@ -60,12 +61,14 @@ public class ExcelUtil {
 
                 String value = values.get(i).getString(title[j] + "");
 
-                Pattern pattern = Pattern.compile("^(-?\\d+)(\\.\\d+)?$");
-                boolean bo = pattern.matcher(value).matches();
-                if (bo) {
-                    row.createCell(j).setCellValue(Double.valueOf(value));
-                } else {
-                    row.createCell(j).setCellValue(value);
+                if (StringUtils.isNotBlank(value)) {
+                    Pattern pattern = Pattern.compile("^(-?\\d+)(\\.\\d+)?$");
+                    boolean bo = pattern.matcher(value).matches();
+                    if (bo) {
+                        row.createCell(j).setCellValue(Double.valueOf(value));
+                    } else {
+                        row.createCell(j).setCellValue(value);
+                    }
                 }
             }
         }
