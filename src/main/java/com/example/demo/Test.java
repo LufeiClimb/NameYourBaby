@@ -42,7 +42,7 @@ public class Test {
     public static void main(String[] args) {
         Test test = new Test();
         try {
-            test.my("钰昊泽浩然品玥宇宏佑赫源辰鑫思文涵卫轩梓新译俊跃杰奕凡延纬靳笙晓童钧沐景煜恺", true, false, "然鑫译文涵凡童钧景宇杰", "思品梓奕凡浩昊");
+            test.my("钰昊心兴阳羽凯宏伟辉凌霄明彦晏筱颜瑞文一贤其烁君博天熙泽浩逸汝云柏川铭子帅伟璟旭东乐灏征朗涵晗奇星柯喆哲然品玥宇宏佑赫源辰鑫思文涵卫轩梓新译俊跃杰奕凡延纬靳笙晓童钧沐景煜恺", true, false, "然鑫译文涵凡童钧景宇杰", "思品梓奕凡浩昊");
             // test.suiji(true, false);
         } catch (Exception e) {
             e.printStackTrace();
@@ -52,7 +52,7 @@ public class Test {
     @GetMapping("/my")
     @ApiOperation(value = "my")
     public Integer my(
-            @RequestParam @ApiParam(defaultValue = "钰昊泽浩然品玥宇宏佑赫源辰鑫思文涵卫轩梓新译俊跃杰奕凡延纬靳笙晓童钧沐景煜恺")
+            @RequestParam @ApiParam(defaultValue = "钰昊心兴阳羽凯宏伟辉凌霄明彦晏筱颜瑞文一贤其烁君博天熙泽浩逸汝云柏川铭子帅伟璟旭东乐灏征朗涵晗奇星柯喆哲然品玥宇宏佑赫源辰鑫思文涵卫轩梓新译俊跃杰奕凡延纬靳笙晓童钧沐景煜恺")
                     String words,
             @RequestParam @ApiParam(defaultValue = "true") boolean wuxing,
             @RequestParam @ApiParam(defaultValue = "false") boolean xiongPaichu,
@@ -105,8 +105,8 @@ public class Test {
         param.put("xinglength", "all");
         param.put("minglength", "all");
         param.put("sex", "nan");
-        param.put("dic", "default"); // default 3040 5060 8090 0010 gudai ganzhi
-        param.put("num", "888");
+        param.put("dic", "gudai"); // default 3040 5060 8090 0010 gudai ganzhi
+        param.put("num", "2000");
         String formResult = HttpUtil.httpForm(httpUrl, param);
 
         Document totalDoc = Jsoup.parse(formResult);
