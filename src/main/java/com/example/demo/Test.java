@@ -61,14 +61,13 @@ public class Test {
             @RequestParam @ApiParam(defaultValue = "思品梓奕凡浩昊") String sanPaiChu)
             throws ExecutionException, InterruptedException, IOException {
         char[] chars = words.toCharArray();
-        List<JSONObject> names = new ArrayList<>();
-        List<String> allName = new ArrayList<>();
         List<String> wordsList = new ArrayList<>();
         for (char aChar : chars) {
             wordsList.add(String.valueOf(aChar));
         }
 
         List<String> excelNames = getNameFromExcel();
+        List<String> allName = new ArrayList<>();
 
         for (String worda : wordsList) {
             if (!erPaiChu.contains(worda)) {
@@ -83,6 +82,8 @@ public class Test {
             }
         }
 
+        List<JSONObject> names = new ArrayList<>();
+
         packageExcelValue(wuxing, xiongPaichu, names, allName);
 
         exportToExcel(names, excelNames);
@@ -94,10 +95,8 @@ public class Test {
             @RequestParam @ApiParam(defaultValue = "true") boolean wuxing,
             @RequestParam @ApiParam(defaultValue = "false") boolean xiongPaichu)
             throws ExecutionException, InterruptedException, IOException {
-        List<JSONObject> names = new ArrayList<>();
 
         List<String> allName = new ArrayList<>();
-
         List<String> excelNames = getNameFromExcel();
 
         String httpUrl = "https://www.qmsjmfb.com/";
@@ -108,8 +107,8 @@ public class Test {
         param.put("sex", "nan");
         param.put("dic", "0010"); // default 3040 5060 8090 0010 gudai ganzhi
         param.put("num", "200");
-
         String formResult = HttpUtil.httpForm(httpUrl, param);
+
         Document totalDoc = Jsoup.parse(formResult);
         Elements small = totalDoc.select("ul[class=name_show]").select("li");
         for (Element element : small) {
@@ -119,9 +118,27 @@ public class Test {
             }
         }
 
+        List<JSONObject> names = new ArrayList<>();
+
         packageExcelValue(wuxing, xiongPaichu, names, allName);
 
         exportToExcel(names, excelNames);
+    }
+
+    private List<String> getNameFromExcel() throws IOException {
+        List<String> excelNames = new ArrayList<>();
+
+        FileInputStream fileInputStream = new FileInputStream("宝宝起名.xls");
+        Workbook wbRead = new HSSFWorkbook(fileInputStream);
+        Sheet sheet = wbRead.getSheet("备用名");
+        int totalNum = sheet.getPhysicalNumberOfRows();
+        for (int j = 0; j < totalNum; j++) {
+            HSSFRow row = (HSSFRow) sheet.getRow(j);
+            HSSFCell cell = row.getCell(0);
+            String stringCellValue = cell.getStringCellValue();
+            excelNames.add(stringCellValue);
+        }
+        return excelNames;
     }
 
     private void packageExcelValue(
@@ -162,22 +179,6 @@ public class Test {
             }
         }
         System.out.println(names);
-    }
-
-    private List<String> getNameFromExcel() throws IOException {
-        List<String> excelNames = new ArrayList<>();
-
-        FileInputStream fileInputStream = new FileInputStream("宝宝起名.xls");
-        Workbook wbRead = new HSSFWorkbook(fileInputStream);
-        Sheet sheet = wbRead.getSheet("备用名");
-        int totalNum = sheet.getPhysicalNumberOfRows();
-        for (int j = 0; j < totalNum; j++) {
-            HSSFRow row = (HSSFRow) sheet.getRow(j);
-            HSSFCell cell = row.getCell(0);
-            String stringCellValue = cell.getStringCellValue();
-            excelNames.add(stringCellValue);
-        }
-        return excelNames;
     }
 
     private void exportToExcel(List<JSONObject> names, List<String> excelNames) {
@@ -232,14 +233,14 @@ public class Test {
             return jsonObject;
         }
 
-        private JSONObject doTask(boolean wuxing, boolean xiongPaichu, String name1) {
+        private JSONObject doTask(boolean wuxing, boolean xiongPaichu, String name) {
             JSONObject map = new JSONObject();
-            map.put("名字", name1);
+            map.put("名字", name);
 
             if (wuxing) {
                 JSONObject param = new JSONObject();
                 param.put("xs", "卢");
-                param.put("mz", name1.replace("卢", ""));
+                param.put("mz", name.replace("卢", ""));
                 param.put("action", "test");
 
                 Map<String, String> headers = new HashMap<>();
@@ -255,7 +256,7 @@ public class Test {
                     String total =
                             HttpUtil.httpsPost(
                                     "https://name2.feifanqiming.com/home/jieming_detail.html?f=%E5%8D%A2&s="
-                                            + name1.replace("卢", "")
+                                            + name.replace("卢", "")
                                             + "&b=2020-02-17%2015:00&sex=2&bhour=&from=home",
                                     param,
                                     headers,
@@ -283,7 +284,7 @@ public class Test {
                     String wuge =
                             HttpUtil.httpsPost(
                                     "https://name2.feifanqiming.com/home/jieming_sancai.html?f=%E5%8D%A2&s="
-                                            + name1.replace("卢", "")
+                                            + name.replace("卢", "")
                                             + "&b=2020-02-17%2015:00&sex=2&bhour=&from=home",
                                     param,
                                     headers,
