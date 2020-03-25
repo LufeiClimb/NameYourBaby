@@ -15,26 +15,12 @@
             <PatternLayout pattern="%d{HH:mm:ss.SSS} %-5level %class{36} %L %M - %msg%xEx%n"/>
         </File>
 
-        <!--这个会打印出所有的信息，每次大小超过size，则这size大小的日志会自动存入按年份-月份建立的文件夹下面并进行压缩，作为存档-->
-        <RollingFile name="RollingFile" fileName="logs/DataOS.log"
-                     filePattern="logs/$${date:yyyy-MM}/access-core-%d{MM-dd-yyyy}-%i.log.gz">
-            <ThresholdFilter level="info" onMatch="ACCEPT" onMismatch="DENY"/>
-            <PatternLayout pattern="%d{yyyy-MM-dd 'at' HH:mm:ss z} %-5level %class{36} %L %M - %msg%xEx%n"/>
-            <SizeBasedTriggeringPolicy size="50MB"/>
-        </RollingFile>
-
-        <File name="ERROR" fileName="logs/error.log">
-            <ThresholdFilter level="error" onMatch="ACCEPT" onMismatch="DENY"/>
-            <PatternLayout pattern="%d{yyyy.MM.dd 'at' HH:mm:ss z} %-5level %class{36} %L %M - %msg%xEx%n"/>
-        </File>
     </appenders>
     <!--然后定义logger，只有定义了logger并引入的appender，appender才会生效-->
     <loggers>
 
         <!--建立一个默认的root的logger-->
         <root level="INFO">
-            <appender-ref ref="RollingFile"/>
-            <appender-ref ref="ERROR" />
             <appender-ref ref="Console"/>
         </root>
     </loggers>

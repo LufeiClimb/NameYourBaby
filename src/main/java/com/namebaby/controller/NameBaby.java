@@ -1,6 +1,8 @@
-package com.example.demo;
+package com.namebaby.controller;
 
 import com.alibaba.fastjson.JSONObject;
+import com.namebaby.utils.ExcelUtil;
+import com.namebaby.utils.HttpUtil;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -27,37 +29,50 @@ import java.util.*;
 import java.util.concurrent.*;
 
 /**
- * Test
+ * NameBaby
  *
  * @author lufeixia
  * @version 1.0
  * @date 2020/3/13 12:21
  * @since 1.8
  */
+@Api(value = "/nameBaby")
 @RestController
-@RequestMapping("")
-@Api
-public class Test {
+@RequestMapping("/nameBaby")
+public class NameBaby {
 
     public static void main(String[] args) {
-        Test test = new Test();
+        NameBaby test = new NameBaby();
         try {
-            test.my("钰昊心兴阳羽凯宏伟辉凌霄明彦晏筱颜瑞文一贤其烁君博天熙泽浩逸汝云柏川铭子帅伟璟旭东乐灏征朗涵晗奇星柯喆哲然品玥宇宏佑赫源辰鑫思文涵卫轩梓新译俊跃杰奕凡延纬靳笙晓童钧沐景煜恺", true, false, "然鑫译文涵凡童钧景宇杰", "思品梓奕凡浩昊");
-            // test.suiji(true, false);
+            test.byWords(
+                    "卢",
+                    "钰昊心兴阳羽凯宏伟辉凌霄明彦晏筱颜瑞文一贤其烁君博天熙泽浩逸汝云柏川铭子帅伟璟旭东乐灏征朗涵晗奇星柯喆哲然品玥宇宏佑赫源辰鑫思文涵卫轩梓新译俊跃杰奕凡延纬靳笙晓童钧沐景煜恺",
+                    true,
+                    false,
+                    "然鑫译文涵凡童钧景宇杰",
+                    "思品梓奕凡浩昊");
+            // test.fromNet(true, false);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    @GetMapping("/my")
-    @ApiOperation(value = "my")
-    public Integer my(
-            @RequestParam @ApiParam(defaultValue = "钰昊心兴阳羽凯宏伟辉凌霄明彦晏筱颜瑞文一贤其烁君博天熙泽浩逸汝云柏川铭子帅伟璟旭东乐灏征朗涵晗奇星柯喆哲然品玥宇宏佑赫源辰鑫思文涵卫轩梓新译俊跃杰奕凡延纬靳笙晓童钧沐景煜恺")
+    @GetMapping("/byWords")
+    @ApiOperation(value = "自定义文字生成名字")
+    public Integer byWords(
+            @RequestParam @ApiParam(required = true, value = "姓") String surname,
+            @RequestParam
+                    @ApiParam(
+                            required = true, defaultValue =
+                                    "钰昊心兴阳羽凯宏伟辉凌霄明彦晏筱颜瑞文一贤其烁君博天熙泽浩逸汝云柏川铭子帅伟璟旭东乐灏征朗涵晗奇星柯喆哲然品玥宇宏佑赫源辰鑫思文涵卫轩梓新译俊跃杰奕凡延纬靳笙晓童钧沐景煜恺")
                     String words,
-            @RequestParam @ApiParam(defaultValue = "true") boolean wuxing,
-            @RequestParam @ApiParam(defaultValue = "false") boolean xiongPaichu,
-            @RequestParam @ApiParam(defaultValue = "然鑫译文涵凡童钧景宇杰") String erPaiChu,
-            @RequestParam @ApiParam(defaultValue = "思品梓奕凡浩昊") String sanPaiChu)
+            @RequestParam @ApiParam(defaultValue = "true", value = "是否计算五行") boolean wuxing,
+            @RequestParam @ApiParam(defaultValue = "false", value = "排除三才五格为凶的名字")
+                    boolean xiongPaiChu,
+            @RequestParam @ApiParam(defaultValue = "然鑫译文涵凡童钧景宇杰", value = "排除第二个字为这些字的名字")
+                    String erPaiChu,
+            @RequestParam @ApiParam(defaultValue = "思品梓奕凡浩昊", value = "排除第三个字为这些字的名字")
+                    String sanPaiChu)
             throws ExecutionException, InterruptedException, IOException {
         char[] chars = words.toCharArray();
         List<String> wordsList = new ArrayList<>();
@@ -72,7 +87,7 @@ public class Test {
             if (!erPaiChu.contains(worda)) {
                 for (String wordb : wordsList) {
                     if (!sanPaiChu.contains(wordb)) {
-                        String name = "卢" + worda + wordb;
+                        String name = surname + worda + wordb;
                         if (!excelNames.contains(name)) {
                             allName.add(name);
                         }
@@ -83,17 +98,20 @@ public class Test {
 
         List<JSONObject> names = new ArrayList<>();
 
-        packageExcelValue(wuxing, xiongPaichu, names, allName);
+        packageExcelValue(surname, wuxing, xiongPaiChu, names, allName);
 
-        exportToExcel(names, excelNames);
+        exportToExcel(surname, names, excelNames);
         return names.size();
     }
 
-    @GetMapping("/suiji")
-    @ApiOperation(value = "suiji")
-    public Integer suiji(
-            @RequestParam @ApiParam(defaultValue = "true") boolean wuxing,
-            @RequestParam @ApiParam(defaultValue = "false") boolean xiongPaichu)
+    @GetMapping("/fromNet")
+    @ApiOperation(value = "从 www.qmsjmfb.com 网站上生成")
+    public Integer fromNet(
+            @RequestParam @ApiParam(required = true, value = "姓") String surname,
+            @RequestParam @ApiParam(required = true, defaultValue = "nan", value = "性别", allowableValues = "nan, nv") String sex,
+            @RequestParam @ApiParam(defaultValue = "true", value = "是否计算五行") boolean wuxing,
+            @RequestParam @ApiParam(defaultValue = "false", value = "排除三才五格为凶的名字")
+                    boolean xiongPaichu)
             throws ExecutionException, InterruptedException, IOException {
 
         List<String> allName = new ArrayList<>();
@@ -101,11 +119,11 @@ public class Test {
 
         String httpUrl = "https://www.qmsjmfb.com/";
         JSONObject param = new JSONObject();
-        param.put("xing", "卢");
+        param.put("xing", surname);
         param.put("xinglength", "all");
         param.put("minglength", "all");
-        param.put("sex", "nan");
-        param.put("dic", "gudai"); // default 3040 5060 8090 0010 gudai ganzhi
+        param.put("sex", sex);
+        param.put("dic", "default"); // default 3040 5060 8090 0010 gudai ganzhi
         param.put("num", "2000");
         String formResult = HttpUtil.httpForm(httpUrl, param);
 
@@ -120,9 +138,9 @@ public class Test {
 
         List<JSONObject> names = new ArrayList<>();
 
-        packageExcelValue(wuxing, xiongPaichu, names, allName);
+        packageExcelValue(surname, wuxing, xiongPaichu, names, allName);
 
-        exportToExcel(names, excelNames);
+        exportToExcel(surname, names, excelNames);
         return names.size();
     }
 
@@ -143,7 +161,11 @@ public class Test {
     }
 
     private void packageExcelValue(
-            boolean wuxing, boolean xiongPaichu, List<JSONObject> names, List<String> allName)
+            String surname,
+            boolean wuxing,
+            boolean xiongPaichu,
+            List<JSONObject> names,
+            List<String> allName)
             throws InterruptedException, ExecutionException {
 
         ThreadPoolExecutor executor =
@@ -153,14 +175,12 @@ public class Test {
         List<Future<JSONObject>> results = new ArrayList<>();
         for (String name1 : allName) {
             Thread.sleep(10);
-            MyTask myTask = new MyTask(wuxing, xiongPaichu, name1);
+            MyTask myTask = new MyTask(surname, wuxing, xiongPaichu, name1);
             Future<JSONObject> submit = executor.submit(myTask);
             results.add(submit);
         }
         Set<Integer> sss = new HashSet<>();
         do {
-            //            System.out.printf("number of completed tasks: %d\n",
-            // executor.getCompletedTaskCount());
             for (int j = 0; j < results.size(); j++) {
                 Future<JSONObject> result = results.get(j);
                 if (result.isDone() && !sss.contains(j)) {
@@ -182,14 +202,14 @@ public class Test {
         System.out.println(names);
     }
 
-    private void exportToExcel(List<JSONObject> names, List<String> excelNames) {
+    private void exportToExcel(String surname, List<JSONObject> names, List<String> excelNames) {
         FileInputStream fileInputStream;
         String sheetName = "备用名";
         String[] title = {
-                "名字", "五行", "综合分数", "字形意义", "生肖喜忌", "八字喜用", "三才五格", "三才", "总格", "天格", "人格", "地格", "外格"
+            "名字", "五行", "综合分数", "字形意义", "生肖喜忌", "八字喜用", "三才五格", "三才", "总格", "天格", "人格", "地格", "外格"
         };
         JSONObject now = new JSONObject();
-        now.put("名字", "卢");
+        now.put("名字", surname);
         names.add(0, now);
         try {
             fileInputStream = new FileInputStream("宝宝起名.xls");
@@ -210,12 +230,14 @@ public class Test {
 
     class MyTask implements Callable<JSONObject> {
         private String taskName;
+        private String surname;
         private boolean wuxing;
         private boolean xiongPaichu;
         private String name;
 
-        public MyTask(boolean wuxing, boolean xiongPaichu, String name) {
+        MyTask(String surname, boolean wuxing, boolean xiongPaichu, String name) {
             this.taskName = wuxing + name;
+            this.surname = surname;
             this.wuxing = wuxing;
             this.xiongPaichu = xiongPaichu;
             this.name = name;
@@ -226,7 +248,7 @@ public class Test {
             JSONObject jsonObject = new JSONObject();
             // System.out.println("正在执行task " + taskName);
             try {
-                jsonObject = doTask(wuxing, xiongPaichu, name);
+                jsonObject = doTask(surname, wuxing, xiongPaichu, name);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -234,14 +256,15 @@ public class Test {
             return jsonObject;
         }
 
-        private JSONObject doTask(boolean wuxing, boolean xiongPaichu, String name) {
+        private JSONObject doTask(
+                String surname, boolean wuxing, boolean xiongPaichu, String name) {
             JSONObject map = new JSONObject();
             map.put("名字", name);
 
             if (wuxing) {
                 JSONObject param = new JSONObject();
-                param.put("xs", "卢");
-                param.put("mz", name.replace("卢", ""));
+                param.put("xs", surname);
+                param.put("mz", name.replace(surname, ""));
                 param.put("action", "test");
 
                 Map<String, String> headers = new HashMap<>();
@@ -257,7 +280,7 @@ public class Test {
                     String total =
                             HttpUtil.httpsPost(
                                     "https://name2.feifanqiming.com/home/jieming_detail.html?f=%E5%8D%A2&s="
-                                            + name.replace("卢", "")
+                                            + name.replace(surname, "")
                                             + "&b=2020-02-17%2015:00&sex=2&bhour=&from=home",
                                     param,
                                     headers,
@@ -289,7 +312,7 @@ public class Test {
                     String wuge =
                             HttpUtil.httpsPost(
                                     "https://name2.feifanqiming.com/home/jieming_sancai.html?f=%E5%8D%A2&s="
-                                            + name.replace("卢", "")
+                                            + name.replace(surname, "")
                                             + "&b=2020-02-17%2015:00&sex=2&bhour=&from=home",
                                     param,
                                     headers,

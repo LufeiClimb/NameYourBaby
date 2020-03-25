@@ -1,4 +1,4 @@
-package com.example;
+package com.namebaby;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,12 +9,12 @@ import org.springframework.core.env.Environment;
 
 @SpringBootApplication
 @EnableConfigurationProperties
-public class DemoApplication {
+public class NameBabyApplication {
 
-    private static final Logger log = LoggerFactory.getLogger(DemoApplication.class);
+    private static final Logger log = LoggerFactory.getLogger(NameBabyApplication.class);
 
     public static void main(String[] args) {
-        SpringApplication app = new SpringApplication(DemoApplication.class);
+        SpringApplication app = new SpringApplication(NameBabyApplication.class);
         Environment env = app.run(args).getEnvironment();
         log.info(
                 "\n----------------------------------------------------------\n\t"

@@ -1,22 +1,18 @@
-package com.example.demo;
+package com.namebaby.utils;
 
 
 import com.alibaba.fastjson.JSONObject;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.AbstractExecutionAwareRequest;
 import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.utils.URLEncodedUtils;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
-import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,7 +21,11 @@ import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -34,12 +34,16 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 /**
  * HttpUtil
  *
- * @author lufeixia
+ * @author LufeiClimb
  * @version 1.0
  * @date 2019/11/29 13:57
  * @since 1.8
@@ -55,135 +59,7 @@ public class HttpUtil {
     // 默认链接请求超时时间
     private static final int DEFAULT_CONNECTION_REQUEST_TIMEOUT = 60000;
 
-    /**
-     * get 请求
-     *
-     * @param url url地址
-     * @param param 参数
-     * @param headers 请求头
-     * @param connectTimeout 链接超时时间
-     * @param socketTimeout 网络超时时间
-     * @param connectionRequestTimeout 链接请求超时时间
-     * @param ignoreSsl 是否忽略证书
-     * @return get
-     * @throws IOException exception
-     */
-    public static String get(
-            String url,
-            JSONObject param,
-            boolean paramsEncode,
-            Map<String, String> headers,
-            int connectTimeout,
-            int socketTimeout,
-            int connectionRequestTimeout,
-            boolean ignoreSsl)
-            throws IOException {
-        // 获取链接
-        CloseableHttpClient client = null;
-        if (ignoreSsl) {
-            client = HttpClients.createDefault();
-        } else {
-            client = createSSLClientDefault();
-        }
-        // 参数封装
-        String params;
-        if (paramsEncode) {
-            params = httpGetByEncode(param);
-        } else {
-            params = map2String(param);
-        }
-        String uri = url + (url.contains("?") ? "&" : "?") + params;
-        HttpGet httpGet = new HttpGet(uri);
-        // 设置超时时间
-        httpGet.setConfig(
-                getRequestConfig(connectTimeout, socketTimeout, connectionRequestTimeout));
-        // 设置请求头
-        setHeader(httpGet, headers);
-        String respContent = null;
-        // 执行链接
-        CloseableHttpResponse resp = null;
-        try {
-            resp = client.execute(httpGet);
-            LOGGER.info("get请求返回接口结果：{}" + resp);
-            if (resp.getStatusLine().getStatusCode() == 200) {
-                HttpEntity he = resp.getEntity();
-                respContent = EntityUtils.toString(he, "UTF-8");
-            }
-        } catch (IOException e) {
-            LOGGER.error("GET请求执行方法报错" + e);
-        } finally {
-            if (resp != null) {
-                resp.close();
-            }
-            client.close();
-        }
-        return respContent;
-    }
-
-    public static String httpGet(
-            String url,
-            JSONObject param,
-            Map<String, String> headers,
-            int connectTimeout,
-            int socketTimeout,
-            int connectionRequestTimeout)
-            throws IOException {
-        return get(
-                url,
-                param,
-                false,
-                headers,
-                connectTimeout,
-                socketTimeout,
-                connectionRequestTimeout,
-                true);
-    }
-
-    public static String httpGet(String url, JSONObject param, Map<String, String> headers)
-            throws IOException {
-        return get(
-                url,
-                param,
-                false,
-                headers,
-                DEFAULT_CONNECT_TIMEOUT,
-                DEFAULT_SOCKET_TIMEOUT,
-                DEFAULT_CONNECTION_REQUEST_TIMEOUT,
-                true);
-    }
-
-    public static String httpGet(String url, Map<String, String> headers) throws IOException {
-        return get(
-                url,
-                null,
-                false,
-                headers,
-                DEFAULT_CONNECT_TIMEOUT,
-                DEFAULT_SOCKET_TIMEOUT,
-                DEFAULT_CONNECTION_REQUEST_TIMEOUT,
-                true);
-    }
-
-    public static String httpGetForEncode(
-            String url,
-            JSONObject param,
-            Map<String, String> headers,
-            int connectTimeout,
-            int socketTimeout,
-            int connectionRequestTimeout)
-            throws IOException {
-        return get(
-                url,
-                param,
-                true,
-                headers,
-                connectTimeout,
-                socketTimeout,
-                connectionRequestTimeout,
-                true);
-    }
-
-    /**
+   /**
      * post 请求
      *
      * @param url url地址
@@ -244,46 +120,6 @@ public class HttpUtil {
         return respContent;
     }
 
-    public static String httpPost(
-            String url,
-            JSONObject param,
-            Map<String, String> headers,
-            ContentType contentType,
-            int connectTimeout,
-            int socketTimeout,
-            int connectionRequestTimeout)
-            throws IOException {
-        return post(
-                url,
-                param,
-                headers,
-                contentType,
-                connectTimeout,
-                socketTimeout,
-                connectionRequestTimeout,
-                true);
-    }
-
-    public static String httpsPost(
-            String url,
-            JSONObject param,
-            Map<String, String> headers,
-            ContentType contentType,
-            int connectTimeout,
-            int socketTimeout,
-            int connectionRequestTimeout)
-            throws IOException {
-        return post(
-                url,
-                param,
-                headers,
-                contentType,
-                connectTimeout,
-                socketTimeout,
-                connectionRequestTimeout,
-                false);
-    }
-
     public static String httpsPost(
             String url, JSONObject param, Map<String, String> headers, ContentType contentType)
             throws IOException {
@@ -313,43 +149,6 @@ public class HttpUtil {
                 .setSocketTimeout(socketTimeout)
                 .setConnectionRequestTimeout(connectionRequestTimeout)
                 .build();
-    }
-
-    /**
-     * get方法生成参数
-     *
-     * @param param
-     * @return
-     */
-    private static String map2String(JSONObject param) {
-        if (param != null && param.size() > 0) {
-            StringBuilder params = new StringBuilder();
-            for (Map.Entry<String, Object> entry : param.entrySet()) {
-                params.append(entry.getKey()).append("=").append(entry.getValue()).append("&");
-            }
-            return params.toString();
-        } else {
-            return "";
-        }
-    }
-
-    private static String httpGetByEncode(Map<String, Object> map) {
-        List<BasicNameValuePair> params = new ArrayList<>();
-
-        for (Map.Entry<String, Object> entry : map.entrySet()) {
-            if (entry.getValue() != null) {
-                BasicNameValuePair nameValuePair =
-                        new BasicNameValuePair(entry.getKey(), entry.getValue().toString());
-                params.add(nameValuePair);
-            }
-        }
-        String queryString = URLEncodedUtils.format(params, "UTF-8");
-
-        if (StringUtils.isBlank(queryString)) {
-            return "";
-        } else {
-            return queryString;
-        }
     }
 
     /**

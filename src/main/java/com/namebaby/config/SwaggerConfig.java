@@ -1,4 +1,4 @@
-package com.example.demo;
+package com.namebaby.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,7 +13,7 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2;
 /**
  * swagger配置类
  *
- * @author sijianmeng
+ * @author LufeiClimb
  * swagger配置
  */
 @Configuration
@@ -26,7 +26,7 @@ public class SwaggerConfig {
                 .apiInfo(apiInfo())
                 .useDefaultResponseMessages(false)
                 .select()
-                .apis(RequestHandlerSelectors.basePackage("com.example"))
+                .apis(RequestHandlerSelectors.basePackage("com.namebaby"))
                 .paths(PathSelectors.any())
                 .build();
     }
