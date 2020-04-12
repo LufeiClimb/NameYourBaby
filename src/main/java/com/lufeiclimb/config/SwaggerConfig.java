@@ -1,4 +1,4 @@
-package com.namebaby.config;
+package com.lufeiclimb.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

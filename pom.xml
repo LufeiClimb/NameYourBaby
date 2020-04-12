@@ -8,10 +8,10 @@
         <version>2.2.5.RELEASE</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
-    <groupId>com.example</groupId>
+    <groupId>com.lufeiclimb</groupId>
     <artifactId>nameBaby</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>nameBaby</name>
+    <name>NameYourBaby</name>
     <description>name your Baby</description>
 
     <properties>
